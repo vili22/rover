@@ -3,7 +3,7 @@
 #include "serial.h"
 #include "string_utils.h"
 
-unsigned long seconds_since_init = 0;
+float seconds_since_init;
 
 #define input1 GPIO_PIN_2
 #define input2  GPIO_PIN_6
@@ -40,11 +40,12 @@ static void init_fpu() {
 
 	FPULazyStackingEnable();
 	FPUEnable();
+	seconds_since_init = 0;
 }
 
 void system_time() {
   	TimerIntClear(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
-  	seconds_since_init = seconds_since_init + SysCtlClockGet();
+  	seconds_since_init = seconds_since_init + 1;
 }
 
 void IntGPIOd(void){
@@ -59,18 +60,18 @@ void IntGPIOd(void){
 
 	GPIOPinIntClear(GPIO_PORTD_BASE, input1 | input2);
 
-	unsigned long realtime = seconds_since_init + TimerValueGet(TIMER2_BASE, TIMER_A);
+	float realtime = seconds_since_init + (float)(SysCtlClockGet() -1 - TimerValueGet(TIMER2_BASE, TIMER_A)) / ((float) SysCtlClockGet());
 	char message[80];
-	int message_len = eb_sprintf(message, "%d %l %d %d\n", 0, realtime, wheel, 1);
-	write_message(message, message_len);
+	int message_len = eb_sprintf(message, "%d %f %d %d\n", 0, realtime, wheel, 1);
+	serial_write_message(message, message_len);
 }
 
 void init_sensors(void){
 
-  init_peripherals();
-  init_inputs();
-  init_timer();
-  init_interrupts();
-  init_fpu();
+	init_fpu();
+	init_peripherals();
+	init_inputs();
+	init_timer();
+	init_interrupts();
 }
     

@@ -8,7 +8,7 @@
 #define MAX_MESSAGE_LEN 2
 
 void init_serial();
-void write_message(const char *message, int message_len);
+void serial_write_message(const char *message, int message_len);
 void UARTIntHandler();
 
 #endif

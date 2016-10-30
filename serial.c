@@ -40,11 +40,11 @@ void UARTIntHandler(void){
   }
 }
 
-void write_message(const char *message, int len_message) {
+void serial_write_message(const char *message, int len_message) {
 
 	int iter = 0;
     while(iter < len_message) {
-    	UARTCharPut(UART0_BASE,*(message + iter));
+    	UARTCharPut(UART1_BASE,*(message + iter));
     	iter++;
     }
 }
