@@ -6,7 +6,7 @@
 float seconds_since_init;
 
 #define input1 GPIO_PIN_2
-#define input2  GPIO_PIN_6
+#define input2 GPIO_PIN_6
 
 static void init_peripherals(){
   SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
@@ -56,13 +56,36 @@ void IntGPIOd(void){
 		wheel = 0;
 	} else if(source == input2){
 		wheel = 1;
+	} else if(source == (input1 | input2)) {
+		wheel = 2;
+	}
+
+	int wheel_dir = 1;
+	char rover_direction = motor_get_direction();
+
+	if(rover_direction == 'f') {
+		wheel_dir = 1;
+	} else if(rover_direction == 'b') {
+		wheel_dir = 0;
+	} else if(rover_direction == 'l') {
+		if(source == input1) {
+			wheel_dir = 0;
+		} else if(source == input2) {
+			wheel_dir = 1;
+		}
+	} else if(rover_direction == 'r') {
+		if(source == input1) {
+			wheel_dir = 1;
+		} else if(source == input2) {
+			wheel_dir = 0;
+		}
 	}
 
 	GPIOPinIntClear(GPIO_PORTD_BASE, input1 | input2);
 
 	float realtime = seconds_since_init + (float)(SysCtlClockGet() -1 - TimerValueGet(TIMER2_BASE, TIMER_A)) / ((float) SysCtlClockGet());
 	char message[80];
-	int message_len = eb_sprintf(message, "%d %f %d %d\n", 0, realtime, wheel, 1);
+	int message_len = eb_sprintf(message, "%d %f %d %d\n", 0, realtime, wheel, wheel_dir);
 	serial_write_message(message, message_len);
 }
 

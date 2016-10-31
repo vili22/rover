@@ -19,7 +19,7 @@
 #include "driverlib/timer.h"
 #include "driverlib/pin_map.h"
 
-void analogWrite(int port,int value);
+void analogWrite(unsigned int port,int value);
 void digitalWrite(int port,int value);
 void init_board_leds();
 void init_master();

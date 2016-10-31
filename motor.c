@@ -1,6 +1,9 @@
 #include "motor.h"
 
-int PWM1=6,PWM2=7,DIR1=2,DIR2=3;
+#define PWM1 GPIO_PIN_6
+#define PWM2 GPIO_PIN_7
+
+int DIR1=2,DIR2=3;
 struct Motor motor;
 
 static void init_motor_peripherals(){
@@ -17,8 +20,8 @@ static void init_motor_PWM(unsigned long ulPeriod, unsigned long dutyCycle){
   // Configure PB6 as T0CCP0
   ROM_GPIOPinConfigure(GPIO_PB6_T0CCP0);
   ROM_GPIOPinConfigure(GPIO_PB7_T0CCP1);
-  ROM_GPIOPinTypeTimer(GPIO_PORTB_BASE, GPIO_PIN_6);
-  ROM_GPIOPinTypeTimer(GPIO_PORTB_BASE, GPIO_PIN_7);
+  ROM_GPIOPinTypeTimer(GPIO_PORTB_BASE, PWM1);
+  ROM_GPIOPinTypeTimer(GPIO_PORTB_BASE, PWM2);
   
   // Configure timer
   ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
@@ -102,7 +105,7 @@ static void motor_stop() {
   motor_set_direction('s');
 }
 
-static char motor_get_direction() {
+char motor_get_direction() {
 
 	return motor.direction;
 }

@@ -20,6 +20,7 @@ void init_motor();
 void drive_motor(char direction);
 void motor_timer_interrupt();
 void motor_set_speed(char speed);
+char motor_get_direction();
 
 #endif
 
