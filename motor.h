@@ -10,6 +10,7 @@
 #include "general_functions.h"
 
 struct Motor{
+	unsigned int speed_changed;
 	char speed;
 	char direction;
 	unsigned long shut_down_period;

@@ -9,6 +9,7 @@ int main(void){
 
   //system clock initialization
   init_clock();
+  init_board_leds();
   //serial initialization
   init_serial();
   //motor initialization
@@ -18,7 +19,6 @@ int main(void){
   init_sensors();
 
   //some general initialization
-  init_board_leds();
   init_master();
 
 

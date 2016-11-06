@@ -22,6 +22,7 @@
 void analogWrite(unsigned int port,int value);
 void digitalWrite(int port,int value);
 void init_board_leds();
+void blink_led();
 void init_master();
 
 #endif

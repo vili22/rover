@@ -8,7 +8,7 @@
 #ifndef SENSORS_H_
 #define SENSORS_H_
 
-void init_sensor();
+void init_sensors();
 void IntGPIOd(void);
 void system_time(void);
 

@@ -5,8 +5,8 @@
 
 void init_board_leds(){
 
-	ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
-	ROM_GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3);
 
 }
 
@@ -19,9 +19,9 @@ void analogWrite(unsigned int port,int value){
 
   unsigned long dutyCycle=49998-(49998*value)/255;
   if(port == PWM1)
-    ROM_TimerMatchSet(TIMER0_BASE, TIMER_A,dutyCycle); // PWM
+    TimerMatchSet(TIMER0_BASE, TIMER_A,dutyCycle); // PWM
   else
-    ROM_TimerMatchSet(TIMER0_BASE, TIMER_B,dutyCycle);
+    TimerMatchSet(TIMER0_BASE, TIMER_B,dutyCycle);
 
 }
 
@@ -29,12 +29,20 @@ void digitalWrite(int port,int value){
 
   if(value == 1){
     if(port == 2)
-      ROM_GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_2,4);
+      GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_2,4);
     else
-      ROM_GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_3,8);
+      GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_3,8);
   }else
     if(port==2)
-      ROM_GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_2,0);
+      GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_2,0);
     else
-      ROM_GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_3,0);
+      GPIOPinWrite(GPIO_PORTB_BASE, GPIO_PIN_3,0);
+}
+
+void blink_led() {
+	 if(GPIOPinRead(GPIO_PORTF_BASE,GPIO_PIN_1)) {
+		 GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1, 0);
+	 } else {
+		 GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_1, 2);
+	 }
 }
