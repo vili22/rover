@@ -136,7 +136,7 @@ void init_motor(){
 	init_motor_logic_pins();
 	init_motor_PWM(50000,49998);
 	init_motor_timer();
-	blink_led();
+	//blink_led();
 }
 
 

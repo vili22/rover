@@ -1,15 +1,15 @@
 #include "driverlib/fpu.h"
 
 #include "serial.h"
-#include "string_utils.h"
-
-float seconds_since_init;
+#include "sensors.h"
 
 #define input1 GPIO_PIN_2
 #define input2 GPIO_PIN_4
 
-static unsigned int left_high = 0;
-static unsigned int right_high = 0;
+
+float seconds_since_init;
+
+struct EncoderState encoder_state;
 
 static void init_peripherals(){
   SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
@@ -53,6 +53,13 @@ static void init_fpu() {
 	seconds_since_init = 0;
 }
 
+static void init_encoder_state() {
+
+	encoder_state.wheel = 0;
+	encoder_state.wheel_dir = 0;
+	encoder_state.state_updated = 0;
+}
+
 void system_time() {
   	TimerIntClear(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
   	seconds_since_init = seconds_since_init + 1;
@@ -60,66 +67,54 @@ void system_time() {
 
 void IntGPIOd(void){
 
-	if(!GPIOPinRead(GPIO_PORTD_BASE, input1) && left_high){
-		return;
-	} else if(GPIOPinRead(GPIO_PORTD_BASE, input1) && !left_high) {
-		return;
-	}
-
-	left_high = GPIOPinRead(GPIO_PORTD_BASE, input1) > 0 ? 0 : 1;
-	int wheel = 0;
-	int wheel_dir = 1;
 	char rover_direction = motor_get_direction();
 
-	if(rover_direction == 'f') {
-		wheel_dir = 1;
-	} else if(rover_direction == 'b') {
+	int wheel_dir = 1;
+	if(rover_direction == 'b' || rover_direction == 'l') {
 		wheel_dir = 0;
-	} else if(rover_direction == 'l') {
-			wheel_dir = 0;
-	} else if(rover_direction == 'r') {
-			wheel_dir = 1;
 	}
 
+	encoder_state.wheel = 0;
+	encoder_state.wheel_dir = wheel_dir;
+	encoder_state.state_updated = 1;
 	GPIOPinIntClear(GPIO_PORTD_BASE, input1);
-
-	float realtime = seconds_since_init + (float)(SysCtlClockGet() -1 - TimerValueGet(TIMER2_BASE, TIMER_A)) / ((float) SysCtlClockGet());
-	char message[80];
-	int message_len = eb_sprintf(message, "%d %f %d %d\n", 0, realtime, wheel, wheel_dir);
-	serial_write_message(message, message_len);
 }
 
 void IntGPIOc(void){
 
-	if(!GPIOPinRead(GPIO_PORTC_BASE, input2) && right_high){
-		return;
-	} else if(GPIOPinRead(GPIO_PORTC_BASE, input2) && !right_high) {
-		return;
-	}
-
-	right_high = GPIOPinRead(GPIO_PORTC_BASE, input2) > 0 ? 0 : 1;
-
-
-	int wheel = 1;
-	int wheel_dir = 1;
 	char rover_direction = motor_get_direction();
 
-	if(rover_direction == 'f') {
-		wheel_dir = 1;
-	} else if(rover_direction == 'b') {
+	unsigned int wheel_dir = 1;
+	if(rover_direction == 'b' || rover_direction == 'r') {
 		wheel_dir = 0;
-	} else if(rover_direction == 'l') {
-			wheel_dir = 1;
-	} else if(rover_direction == 'r') {
-			wheel_dir = 0;
 	}
 
-	GPIOPinIntClear(GPIO_PORTC_BASE, input2);
+	encoder_state.wheel = 1;
+	encoder_state.wheel_dir = wheel_dir;
+	encoder_state.state_updated = 1;
 
-	float realtime = seconds_since_init + (float)(SysCtlClockGet() -1 - TimerValueGet(TIMER2_BASE, TIMER_A)) / ((float) SysCtlClockGet());
-	char message[80];
-	int message_len = eb_sprintf(message, "%d %f %d %d\n", 0, realtime, wheel, wheel_dir);
-	serial_write_message(message, message_len);
+	GPIOPinIntClear(GPIO_PORTC_BASE, input2);
+}
+
+float sensors_get_seconds_since_init() {
+
+	float seconds_since_init_copy = seconds_since_init;
+	return (seconds_since_init_copy + (float)(SysCtlClockGet() -1 - TimerValueGet(TIMER2_BASE, TIMER_A)) / ((float) SysCtlClockGet()));
+}
+
+unsigned int sensors_encoder_updated() {
+
+	return encoder_state.state_updated;
+}
+
+struct EncoderState sensors_get_encoder_state() {
+
+	return encoder_state;
+}
+
+void sensors_clear_encoder_updated() {
+
+	encoder_state.state_updated = 0;
 }
 
 
@@ -130,5 +125,6 @@ void init_sensors(void){
 	init_inputs();
 	init_timer();
 	init_interrupts();
+	init_encoder_state();
 }
     
