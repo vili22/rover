@@ -48,7 +48,7 @@ static void init_motor_timer(){
 static void init_motor_state() {
 
 	motor.speed_changed = 0;
-	motor.speed=122;
+	motor.speed=150;
 	motor.direction='s';
 	motor.shut_down_time=3;
 	motor.shut_down_period=(ROM_SysCtlClockGet()/motor.shut_down_time);

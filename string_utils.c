@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <math.h>
 #include "string_utils.h"
 
 static int handle_next_formatter(char *output, char *input, int in_index, int out_index, va_list ap) {
@@ -119,16 +120,8 @@ int get_digits_f(char* digits, float number) {
 	get_digits_i(int_digits, int_part);
 
 	char float_digits[20];
-	int float_part = (int)((number - (float)int_part)*1e6);
+	int float_part = round((number - (float)int_part)*1e6);
 	get_digits_i(float_digits, float_part);
-	//int index = 0;
-	//do {
-	//   	float_part = float_part * 10;
-	//	float_digits[index] = '0' + (int)float_part;
-	//	float_part = float_part -(float)(int)float_part;
-	//	index++;
-	//} while(index < 6);
-	//float_digits[index] = '\0';	
 
 	int tot_index = 0;
 	if(is_negative) {
@@ -144,6 +137,13 @@ int get_digits_f(char* digits, float number) {
 	digits[tot_index] = '.';
 	tot_index++;
 	
+	int preceding_zeros = 6 - str_len(float_digits);
+	for(int k = 0; k < preceding_zeros; k++) {
+		digits[tot_index + k] = '0';
+	}
+
+	tot_index += preceding_zeros;
+
 	for(int k = 0; k < str_len(float_digits) ; k++) {
 	
 		digits[tot_index + k] = float_digits[k];
