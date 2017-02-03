@@ -8,6 +8,9 @@
 
 
 float seconds_since_init;
+static float left_wheel_updated = -1.0f;
+static float right_wheel_updated = -1.0f;
+static float min_interval = 0.01f;
 
 struct EncoderState encoder_state;
 
@@ -67,6 +70,12 @@ void system_time() {
 
 void IntGPIOd(void){
 
+	float current_time = sensors_get_seconds_since_init();
+	if(current_time - left_wheel_updated < min_interval) {
+		return;
+	}
+
+	left_wheel_updated = current_time;
 	char rover_direction = motor_get_direction();
 
 	int wheel_dir = 1;
@@ -81,6 +90,13 @@ void IntGPIOd(void){
 }
 
 void IntGPIOc(void){
+
+	float current_time = sensors_get_seconds_since_init();
+	if(current_time - right_wheel_updated < min_interval) {
+		return;
+	}
+
+	right_wheel_updated = current_time;
 
 	char rover_direction = motor_get_direction();
 
