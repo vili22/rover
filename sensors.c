@@ -3,31 +3,34 @@
 #include "serial.h"
 #include "sensors.h"
 
-#define input1 GPIO_PIN_2
+#define input1 GPIO_PIN_5
 #define input2 GPIO_PIN_4
 
 
 float seconds_since_init;
-static float left_wheel_updated = -1.0f;
-static float right_wheel_updated = -1.0f;
-static float min_interval = 0.01f;
+//static unsigned int left_high = 0;
+//static unsigned int right_high = 0;
 
-struct EncoderState encoder_state;
+float left_prev = -1.0f;
+float right_prev = -1.0f;
+
+struct EncoderState left_encoder;
+struct EncoderState right_encoder;
 
 static void init_peripherals(){
-  SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+  //SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
   SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
 }
 
 static void init_inputs(){
 
-  GPIODirModeSet(GPIO_PORTD_BASE, input1, GPIO_DIR_MODE_IN);
-  GPIOPadConfigSet(GPIO_PORTD_BASE, input1, GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU);
-  GPIOIntTypeSet(GPIO_PORTD_BASE, input1, GPIO_BOTH_EDGES);
+  //GPIODirModeSet(GPIO_PORTE_BASE, input1, GPIO_DIR_MODE_IN);
+  //GPIOPadConfigSet(GPIO_PORTE_BASE, input1, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
+  //GPIOIntTypeSet(GPIO_PORTE_BASE, input1, GPIO_RISING_EDGE);
 
-  GPIODirModeSet(GPIO_PORTC_BASE, input2, GPIO_DIR_MODE_IN);
-  GPIOPadConfigSet(GPIO_PORTC_BASE, input2, GPIO_STRENGTH_4MA, GPIO_PIN_TYPE_STD_WPU);
-  GPIOIntTypeSet(GPIO_PORTC_BASE, input2, GPIO_BOTH_EDGES);
+  GPIODirModeSet(GPIO_PORTC_BASE, input1 | input2, GPIO_DIR_MODE_IN);
+  GPIOPadConfigSet(GPIO_PORTC_BASE, input1 | input2, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
+  GPIOIntTypeSet(GPIO_PORTC_BASE, input1 | input2, GPIO_BOTH_EDGES);
 }
 
 static void init_timer() {
@@ -38,9 +41,9 @@ static void init_timer() {
 }
 static void init_interrupts(){
   
-  GPIOPinIntEnable(GPIO_PORTD_BASE, input1);
-  GPIOPinIntEnable(GPIO_PORTC_BASE, input2);
-  IntEnable(INT_GPIOD);
+  //GPIOPinIntEnable(GPIO_PORTE_BASE, input1);
+  GPIOPinIntEnable(GPIO_PORTC_BASE, input1 | input2);
+  IntEnable(INT_GPIOE);
   IntEnable(INT_GPIOC);
   IntEnable(INT_TIMER2A);
   TimerIntEnable(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
@@ -56,11 +59,51 @@ static void init_fpu() {
 	seconds_since_init = 0;
 }
 
-static void init_encoder_state() {
+static void init_encoder_states() {
 
-	encoder_state.wheel = 0;
-	encoder_state.wheel_dir = 0;
-	encoder_state.state_updated = 0;
+	left_encoder.wheel_dir = 0;
+	left_encoder.state_updated = 0;
+	//left_encoder.time_stamp = -1;
+
+	right_encoder.wheel_dir = 0;
+	right_encoder.state_updated = 0;
+	//right_encoder.time_stamp = -1;
+}
+
+static void set_left_encoder_state() {
+
+//	float currentTime = sensors_get_seconds_since_init();
+//
+//	if(currentTime - left_prev < 0.01) {
+//		return;
+//	}
+//
+//	left_prev = currentTime;
+	char rover_direction = motor_get_direction();
+	unsigned int wheel_dir = 1;
+	if(rover_direction == 'b' || rover_direction == 'l') {
+		wheel_dir = 0;
+	}
+	left_encoder.wheel_dir = wheel_dir;
+	left_encoder.state_updated = 1;
+}
+
+static void set_right_encoder_state() {
+
+//	float currentTime = sensors_get_seconds_since_init();
+//
+//	if(currentTime - right_prev < 0.01) {
+//		return;
+//	}
+//
+//	right_prev = currentTime;
+	char rover_direction = motor_get_direction();
+	unsigned int wheel_dir = 1;
+	if(rover_direction == 'b' || rover_direction == 'r') {
+		wheel_dir = 0;
+	}
+	right_encoder.wheel_dir = wheel_dir;
+	right_encoder.state_updated = 1;
 }
 
 void system_time() {
@@ -68,14 +111,11 @@ void system_time() {
   	seconds_since_init = seconds_since_init + 1;
 }
 
-void IntGPIOd(void){
+void IntGPIOe(void){
 
-	float current_time = sensors_get_seconds_since_init();
-	if(current_time - left_wheel_updated < min_interval) {
-		return;
-	}
-
-	left_wheel_updated = current_time;
+//	if(!GPIOPinRead(GPIO_PORTD_BASE, input1)){
+//			return;
+//	}
 	char rover_direction = motor_get_direction();
 
 	int wheel_dir = 1;
@@ -83,33 +123,29 @@ void IntGPIOd(void){
 		wheel_dir = 0;
 	}
 
-	encoder_state.wheel = 0;
-	encoder_state.wheel_dir = wheel_dir;
-	encoder_state.state_updated = 1;
-	GPIOPinIntClear(GPIO_PORTD_BASE, input1);
+	left_encoder.wheel_dir = wheel_dir;
+	left_encoder.state_updated = 1;
+	GPIOPinIntClear(GPIO_PORTE_BASE, input1);
 }
 
 void IntGPIOc(void){
 
-	float current_time = sensors_get_seconds_since_init();
-	if(current_time - right_wheel_updated < min_interval) {
-		return;
+	unsigned int source = GPIOPinIntStatus(GPIO_PORTC_BASE, input1 | input2);
+
+	if(source == input1) {
+
+		set_left_encoder_state();
+		GPIOPinIntClear(GPIO_PORTC_BASE, input1);
+
+	} else if (source == input2) {
+
+		set_right_encoder_state();
+		GPIOPinIntClear(GPIO_PORTC_BASE, input2);
+	} else if( source == (input2 | input1)) {
+		set_left_encoder_state();
+		set_right_encoder_state();
+		GPIOPinIntClear(GPIO_PORTC_BASE, input1 | input1);
 	}
-
-	right_wheel_updated = current_time;
-
-	char rover_direction = motor_get_direction();
-
-	unsigned int wheel_dir = 1;
-	if(rover_direction == 'b' || rover_direction == 'r') {
-		wheel_dir = 0;
-	}
-
-	encoder_state.wheel = 1;
-	encoder_state.wheel_dir = wheel_dir;
-	encoder_state.state_updated = 1;
-
-	GPIOPinIntClear(GPIO_PORTC_BASE, input2);
 }
 
 float sensors_get_seconds_since_init() {
@@ -118,21 +154,35 @@ float sensors_get_seconds_since_init() {
 	return (seconds_since_init_copy + (float)(SysCtlClockGet() -1 - TimerValueGet(TIMER2_BASE, TIMER_A)) / ((float) SysCtlClockGet()));
 }
 
-unsigned int sensors_encoder_updated() {
+unsigned int sensors_left_encoder_updated() {
 
-	return encoder_state.state_updated;
+	return left_encoder.state_updated;
 }
 
-struct EncoderState sensors_get_encoder_state() {
+unsigned int sensors_right_encoder_updated() {
 
-	return encoder_state;
+	return right_encoder.state_updated;
 }
 
-void sensors_clear_encoder_updated() {
+struct EncoderState sensors_get_left_encoder_state() {
 
-	encoder_state.state_updated = 0;
+	return left_encoder;
 }
 
+struct EncoderState sensors_get_right_encoder_state() {
+
+	return right_encoder;
+}
+
+void sensors_clear_left_encoder_updated() {
+
+	left_encoder.state_updated = 0;
+}
+
+void sensors_clear_right_encoder_updated() {
+
+	right_encoder.state_updated = 0;
+}
 
 void init_sensors(void){
 
@@ -141,6 +191,6 @@ void init_sensors(void){
 	init_inputs();
 	init_timer();
 	init_interrupts();
-	init_encoder_state();
+	init_encoder_states();
 }
     
